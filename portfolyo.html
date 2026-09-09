@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zywexx</title>
+
+<!-- ============================================================
+     ZYWEXX PORTFOLYO — İÇERİK YÖNETİM ALANI
+     Yeni proje / sosyal medya / ekip eklemek için sadece
+     aşağıdaki DATA bloğunu düzenle. HTML/CSS'e dokunmana gerek yok.
+     ============================================================ -->
+
+<!-- FAVICON: favicon.ico ve apple-touch-icon.png dosyalarını bu HTML dosyasıyla
+     AYNI klasöre koy. Farklı bir klasördeyse (örn. assets/) href yolunu ona göre
+     güncelle: href="assets/favicon.ico" -->
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+
+<style>
+  :root{
+    --black:#000000;
+    --white:#ffffff;
+    --line:#2b2b2b;
+    --line-soft:#1a1a1a;
+    --grey:#8a8a8a;
+    --grey-dim:#555555;
+    --panel:#0a0a0a;
+    --mono:'JetBrains Mono', monospace;
+    --sans:'Space Grotesk', sans-serif;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  ::selection{background:var(--white); color:var(--black);}
+
+  body{
+    background:var(--black);
+    color:var(--white);
+    font-family:var(--sans);
+    overflow-x:hidden;
+    min-height:100vh;
+  }
+
+  a{color:inherit; text-decoration:none;}
+
+  /* scrollbar */
+  ::-webkit-scrollbar{width:8px;}
+  ::-webkit-scrollbar-track{background:var(--black);}
+  ::-webkit-scrollbar-thumb{background:var(--line); border-radius:0;}
+
+  /* ================= INTRO / GİRİŞ ANİMASYONU ================= */
+  /* Konsept: yazı önce ince bir çerçeve (outline) olarak beliriyor,
+     soldan sağa doluyor, sonra dikey "panjur" şeritleri açılarak
+     siteyi ortaya çıkarıyor — klasik yazma/glitch efektinden farklı,
+     sinematik bir perde açılışı. */
+  #intro{
+    position:fixed; inset:0;
+    background:transparent;
+    display:flex; align-items:center; justify-content:center;
+    z-index:999;
+  }
+  #intro.done{visibility:hidden; pointer-events:none;}
+
+  .shutter-bars{
+    position:absolute; inset:0;
+    display:flex;
+    z-index:1;
+  }
+  .shutter-bars .bar{
+    flex:1;
+    background:var(--black);
+    transform:scaleY(1);
+    transform-origin:top;
+    transition:transform .68s cubic-bezier(.76,0,.24,1);
+    border-right:1px solid rgba(255,255,255,.03);
+  }
+  .shutter-bars .bar:last-child{border-right:none;}
+  #intro.open .shutter-bars .bar{transform:scaleY(0);}
+
+  .intro-stage{
+    position:relative;
+    z-index:2;
+    display:flex; flex-direction:column; align-items:center;
+    gap:22px;
+    transition:opacity .4s ease, transform .4s ease;
+  }
+  #intro.open .intro-stage{
+    opacity:0;
+    transform:scale(1.08);
+  }
+
+  .draw-text{
+    position:relative;
+    display:inline-block;
+    font-family:var(--mono);
+    font-weight:800;
+    font-size:clamp(2.6rem, 9vw, 6.5rem);
+    letter-spacing:6px;
+    color:transparent;
+    -webkit-text-stroke:1px rgba(255,255,255,.55);
+    opacity:0;
+    animation:outlineIn .5s ease forwards .15s;
+  }
+  @keyframes outlineIn{
+    from{opacity:0; letter-spacing:14px;}
+    to{opacity:1; letter-spacing:6px;}
+  }
+  .draw-text::after{
+    content:attr(data-text);
+    position:absolute; left:0; top:0;
+    width:100%; height:100%;
+    color:var(--white);
+    -webkit-text-stroke:0;
+    clip-path:inset(0 100% 0 0);
+    animation:fillWipe .85s cubic-bezier(.65,0,.35,1) forwards .75s;
+  }
+  @keyframes fillWipe{
+    to{clip-path:inset(0 0 0 0);}
+  }
+
+  .intro-meter{
+    font-family:var(--mono);
+    font-size:.68rem;
+    letter-spacing:4px;
+    color:var(--grey-dim);
+    opacity:0;
+    animation:meterIn .4s ease forwards 1.5s;
+    display:flex; align-items:center; gap:10px;
+  }
+  @keyframes meterIn{ to{opacity:1;} }
+  .intro-meter .rule{width:34px; height:1px; background:var(--grey-dim);}
+
+
+  /* ================= NAV ================= */
+  header{
+    position:fixed; top:0; left:0; right:0;
+    z-index:50;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:22px clamp(20px,5vw,60px);
+    background:rgba(0,0,0,.75);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line-soft);
+  }
+  .logo{
+    font-family:var(--mono);
+    font-weight:800;
+    font-size:1.05rem;
+    letter-spacing:1px;
+  }
+  nav ul{
+    display:flex; gap:clamp(14px, 3vw, 34px);
+    list-style:none;
+  }
+  nav a{
+    font-family:var(--mono);
+    font-size:.78rem;
+    letter-spacing:.5px;
+    color:var(--grey);
+    position:relative;
+    padding-bottom:4px;
+    transition:color .2s ease;
+  }
+  nav a:hover{color:var(--white);}
+  nav a::after{
+    content:'';
+    position:absolute; left:0; bottom:0;
+    width:0; height:1px; background:var(--white);
+    transition:width .25s ease;
+  }
+  nav a:hover::after{width:100%;}
+
+  .nav-toggle{display:none;}
+
+  /* ================= MAIN LAYOUT ================= */
+  main{
+    max-width:920px;
+    margin:0 auto;
+    padding:150px 24px 60px;
+  }
+  section{padding:70px 0; border-bottom:1px solid var(--line-soft);}
+  section:last-of-type{border-bottom:none;}
+
+  .tag{
+    font-family:var(--mono);
+    font-size:.72rem;
+    color:var(--grey-dim);
+    letter-spacing:2px;
+    display:block;
+    margin-bottom:18px;
+  }
+
+  /* ---- HERO ---- */
+  #hero{
+    padding-top:20px;
+    border-bottom:1px solid var(--line-soft);
+  }
+  .hero-name{
+    font-family:var(--mono);
+    font-weight:800;
+    font-size:clamp(2.4rem, 8vw, 4.6rem);
+    letter-spacing:-1px;
+    line-height:1;
+    display:flex;
+    align-items:center;
+    gap:16px;
+  }
+  .dot{
+    width:12px; height:12px;
+    background:#3ddc63;
+    border-radius:50%;
+    box-shadow:0 0 10px #3ddc63;
+    flex-shrink:0;
+    animation:pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{opacity:1;}
+    50%{opacity:.35;}
+  }
+  .hero-bio{
+    margin-top:22px;
+    max-width:60ch;
+    font-size:1.02rem;
+    line-height:1.75;
+    color:#cfcfcf;
+  }
+  .hero-role{
+    margin-top:10px;
+    font-family:var(--mono);
+    font-size:.85rem;
+    color:var(--grey);
+    letter-spacing:.5px;
+  }
+
+  /* ---- SOCIAL ICONS ---- */
+  .icon-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+    margin-top:28px;
+  }
+  .icon-btn{
+    display:flex; align-items:center; gap:10px;
+    border:1px solid var(--line);
+    padding:10px 18px;
+    font-family:var(--mono);
+    font-size:.8rem;
+    color:var(--white);
+    transition:background .2s ease, transform .2s ease, border-color .2s ease;
+  }
+  .icon-btn i{font-size:1rem;}
+  .icon-btn:hover{
+    background:var(--white); color:var(--black);
+    transform:translateY(-3px);
+    border-color:var(--white);
+  }
+
+  /* ---- SECTION TITLES ---- */
+  h2.section-title{
+    font-family:var(--mono);
+    font-size:clamp(1.3rem, 3vw, 1.8rem);
+    font-weight:700;
+    letter-spacing:-.5px;
+    margin-bottom:36px;
+  }
+
+  /* ---- TECH STACK ---- */
+  .tech-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(110px, 1fr));
+    gap:14px;
+  }
+  .tech-item{
+    border:1px solid var(--line);
+    padding:22px 10px;
+    display:flex; flex-direction:column; align-items:center; gap:10px;
+    transition:border-color .2s ease, transform .2s ease;
+  }
+  .tech-item:hover{border-color:var(--white); transform:translateY(-4px);}
+  .tech-item i{font-size:1.7rem;}
+  .tech-item span{font-family:var(--mono); font-size:.68rem; color:var(--grey); letter-spacing:.5px;}
+
+  /* ---- PROJECTS ---- */
+  .project-list{display:flex; flex-direction:column;}
+  .project{
+    display:grid;
+    grid-template-columns:auto 1fr auto;
+    gap:22px;
+    align-items:start;
+    padding:24px 0;
+    border-top:1px solid var(--line-soft);
+    transition:padding-left .25s ease;
+  }
+  .project:first-child{border-top:none;}
+  .project:hover{padding-left:10px;}
+  .project-icon{
+    width:44px; height:44px;
+    border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.15rem;
+    flex-shrink:0;
+  }
+  .project-name{
+    font-family:var(--mono);
+    font-weight:700;
+    font-size:1rem;
+    margin-bottom:6px;
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  }
+  .project-desc{
+    font-size:.9rem;
+    color:var(--grey);
+    line-height:1.6;
+    max-width:56ch;
+  }
+  .project-stack{
+    margin-top:10px;
+    display:flex; gap:8px; flex-wrap:wrap;
+  }
+  .project-stack span{
+    font-family:var(--mono);
+    font-size:.65rem;
+    color:var(--grey-dim);
+    border:1px solid var(--line-soft);
+    padding:3px 8px;
+  }
+  .project-link{
+    align-self:center;
+    font-size:1rem;
+    color:var(--grey);
+    border:1px solid var(--line);
+    width:38px; height:38px;
+    display:flex; align-items:center; justify-content:center;
+    transition:all .2s ease;
+  }
+  .project-link:hover{background:var(--white); color:var(--black); border-color:var(--white);}
+  .badge{
+    font-family:var(--mono);
+    font-size:.6rem;
+    border:1px solid #3ddc63;
+    color:#3ddc63;
+    padding:2px 7px;
+  }
+
+  /* ---- TEAMS ---- */
+  .team-list{display:flex; flex-direction:column; gap:16px;}
+  .team-card{
+    display:flex; align-items:center; gap:18px;
+    border:1px solid var(--line);
+    padding:18px 20px;
+    transition:border-color .2s ease, transform .2s ease;
+  }
+  .team-card:hover{border-color:var(--white); transform:translateX(6px);}
+  .team-avatar{
+    width:50px; height:50px;
+    border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-weight:800; font-size:1.1rem;
+    flex-shrink:0;
+    overflow:hidden;
+  }
+  .team-avatar img{width:100%; height:100%; object-fit:cover;}
+  .team-info h3{font-family:var(--mono); font-size:.95rem; margin-bottom:4px;}
+  .team-info p{font-size:.82rem; color:var(--grey);}
+  .team-card .icon-btn{margin-left:auto;}
+
+  /* ---- FOOTER ---- */
+  footer{
+    text-align:center;
+    padding:40px 24px;
+    font-family:var(--mono);
+    font-size:.72rem;
+    color:var(--grey-dim);
+    letter-spacing:.5px;
+  }
+
+  /* ================= MUSIC PLAYER (yerel şarkı çalar) ================= */
+  #player{
+    position:fixed;
+    bottom:18px; right:18px;
+    z-index:80;
+    background:var(--panel);
+    border:1px solid var(--line);
+    width:280px;
+    font-family:var(--mono);
+    transition:width .25s ease;
+  }
+  #player.collapsed{width:52px; height:52px; overflow:hidden; border-radius:50%;}
+  .player-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 12px;
+    border-bottom:1px solid var(--line-soft);
+    cursor:pointer;
+  }
+  #player.collapsed .player-head{
+    border-bottom:none;
+    width:52px; height:52px;
+    padding:0;
+    justify-content:center;
+  }
+  #player.collapsed .player-head-left{gap:0;}
+  #player.collapsed .player-title{display:none;}
+  #player.collapsed .player-toggle{display:none;}
+  #player.collapsed .player-body{display:none;}
+  .player-head-left{display:flex; align-items:center; gap:8px; overflow:hidden;}
+  .eq{display:flex; align-items:flex-end; gap:2px; height:14px; flex-shrink:0;}
+  .eq span{width:3px; background:var(--white); animation:eqbar 1s ease-in-out infinite;}
+  .eq span:nth-child(1){height:40%; animation-delay:0s;}
+  .eq span:nth-child(2){height:100%; animation-delay:.2s;}
+  .eq span:nth-child(3){height:60%; animation-delay:.4s;}
+  #player:not(.playing) .eq span{animation-play-state:paused; height:20% !important;}
+  @keyframes eqbar{
+    0%,100%{height:20%;}
+    50%{height:100%;}
+  }
+  .player-title{font-size:.72rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .player-toggle{font-size:.75rem; color:var(--grey); flex-shrink:0;}
+  .player-body{padding:12px;}
+  .track-name{font-size:.72rem; color:var(--white); margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .track-artist{font-size:.65rem; color:var(--grey-dim); margin-bottom:10px;}
+  .controls{display:flex; align-items:center; justify-content:center; gap:18px; margin-bottom:10px;}
+  .controls button{
+    background:none; border:none; color:var(--white);
+    font-size:1rem; cursor:pointer; transition:transform .15s ease, color .15s ease;
+  }
+  .controls button:hover{transform:scale(1.15); color:var(--grey);}
+  .controls .play-btn{
+    width:36px; height:36px;
+    border:1px solid var(--line);
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:.9rem;
+  }
+  .progress-wrap{
+    display:flex; align-items:center; gap:8px;
+    font-size:.62rem; color:var(--grey-dim);
+  }
+  .progress-bar{
+    flex:1; height:3px; background:var(--line);
+    position:relative; cursor:pointer;
+  }
+  .progress-fill{
+    position:absolute; left:0; top:0; height:100%;
+    background:var(--white); width:0%;
+  }
+  .volume-row{display:flex; align-items:center; gap:8px; margin-top:10px;}
+  .volume-row i{font-size:.75rem; color:var(--grey);}
+  input[type="range"]{
+    -webkit-appearance:none; appearance:none;
+    flex:1; height:3px; background:var(--line); outline:none;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:10px; height:10px; background:var(--white); cursor:pointer; border-radius:50%;
+  }
+  .no-tracks{font-size:.65rem; color:var(--grey-dim); line-height:1.5;}
+
+  /* ================= RESPONSIVE ================= */
+  @media (max-width:720px){
+    nav ul{
+      position:fixed; top:64px; right:0;
+      flex-direction:column;
+      background:var(--black);
+      border-left:1px solid var(--line-soft);
+      border-bottom:1px solid var(--line-soft);
+      padding:20px 26px;
+      gap:18px;
+      transform:translateX(100%);
+      transition:transform .3s ease;
+    }
+    nav ul.open{transform:translateX(0);}
+    .nav-toggle{
+      display:block; background:none; border:1px solid var(--line);
+      color:var(--white); width:36px; height:36px; font-size:1rem; cursor:pointer;
+    }
+    .project{grid-template-columns:auto 1fr; }
+    .project-link{grid-column:1 / -1; width:100%; margin-top:10px;}
+    #player{right:10px; bottom:10px; width:240px;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001s !important; transition-duration:.001s !important;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= INTRO ANİMASYONU ================= -->
+<div id="intro">
+  <div class="shutter-bars" id="shutterBars"></div>
+  <div class="intro-stage">
+    <span class="draw-text" data-text="ZYWEXX">ZYWEXX</span>
+    <div class="intro-meter"><span class="rule"></span>PORTFOLYO AÇILIYOR<span class="rule"></span></div>
+  </div>
+</div>
+
+<!-- ================= NAV ================= -->
+<header>
+  <div class="logo">Z_</div>
+  <button class="nav-toggle" id="navToggle" aria-label="Menü"><i class="fa-solid fa-bars"></i></button>
+  <nav>
+    <ul id="navList">
+      <li><a href="#hero">anasayfa</a></li>
+      <li><a href="#stack">teknolojiler</a></li>
+      <li><a href="#projects">projeler</a></li>
+      <li><a href="#teams">ekipler</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ================= HERO / BİYO ================= -->
+  <section id="hero">
+    <span class="tag">// merhaba, ben</span>
+    <h1 class="hero-name"><span class="dot"></span>Zywexx</h1>
+    <p class="hero-role" id="roleText"></p>
+    <p class="hero-bio" id="bioText"></p>
+
+    <div class="icon-row" id="socialRow"></div>
+  </section>
+
+  <!-- ================= TEKNOLOJİLER ================= -->
+  <section id="stack">
+    <span class="tag">// kullandığım</span>
+    <h2 class="section-title">Diller &amp; Teknolojiler</h2>
+    <div class="tech-grid" id="techGrid"></div>
+  </section>
+
+  <!-- ================= PROJELER ================= -->
+  <section id="projects">
+    <span class="tag">// yaptığım işler</span>
+    <h2 class="section-title">Projeler</h2>
+    <div class="project-list" id="projectList"></div>
+  </section>
+
+  <!-- ================= EKİPLER ================= -->
+  <section id="teams">
+    <span class="tag">// birlikte çalıştıklarım</span>
+    <h2 class="section-title">Bulunduğum Ekipler</h2>
+    <div class="team-list" id="teamList"></div>
+  </section>
+
+</main>
+
+<footer>
+  © <span id="year"></span> ZYWEXX — tüm hakları saklıdır.
+</footer>
+
+<!-- ================= MÜZİK ÇALAR ================= -->
+<div id="player">
+  <div class="player-head" id="playerHead">
+    <div class="player-head-left">
+      <div class="eq"><span></span><span></span><span></span></div>
+      <span class="player-title" id="headTitle">local player</span>
+    </div>
+    <span class="player-toggle"><i class="fa-solid fa-chevron-down" id="toggleIcon"></i></span>
+  </div>
+  <div class="player-body" id="playerBody">
+    <div id="trackInfo">
+      <div class="track-name" id="trackName">Şarkı yok</div>
+      <div class="track-artist" id="trackArtist">/music klasörüne mp3 ekle</div>
+    </div>
+    <div class="controls">
+      <button id="prevBtn" title="Önceki"><i class="fa-solid fa-backward-step"></i></button>
+      <button class="play-btn" id="playBtn" title="Oynat/Duraklat"><i class="fa-solid fa-play" id="playIcon"></i></button>
+      <button id="nextBtn" title="Sonraki"><i class="fa-solid fa-forward-step"></i></button>
+    </div>
+    <div class="progress-wrap">
+      <span id="curTime">0:00</span>
+      <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+      <span id="durTime">0:00</span>
+    </div>
+    <div class="volume-row">
+      <i class="fa-solid fa-volume-low"></i>
+      <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.6">
+    </div>
+  </div>
+</div>
+
+<audio id="audio" preload="metadata"></audio>
+
+<script>
+/* =====================================================================
+   ZYWEXX PORTFOLYO — VERİ (DATA) BÖLÜMÜ
+   Site içeriğini güncellemek için SADECE burayı düzenle.
+   Yeni proje / sosyal medya / ekip / şarkı eklemek çok kolay:
+   ilgili diziye yeni bir { ... } satırı eklemen yeterli.
+   ===================================================================== */
+
+const DATA = {
+
+  role: "Geliştirici · @787-INC Founder & Lead Developer",
+
+  bio: "Masaüstü güvenlik araçları, şifreli not yöneticileri ve Discord " +
+       "entegrasyonları üzerine yerel-öncelikli (local-first) yazılımlar " +
+       "geliştiriyorum. Çoğu projem çevrimdışı çalışacak ve veriyi kullanıcının " +
+       "kendi cihazında tutacak şekilde tasarlanıyor.",
+
+  // ---- SOSYAL MEDYA HESAPLARI ----
+  // Yeni hesap eklemek için: { icon: "fa-brands fa-x", label: "İsim", url: "https://..." }
+  socials: [
+    { icon: "fa-brands fa-github",   label: "GitHub",   url: "https://github.com/Zywexx" },
+    { icon: "fa-brands fa-discord",  label: "Discord",  url: "https://discord.gg/CUFXct9PNz" },
+    { icon: "fa-solid fa-gun",       label: "guns.lol",  url: "https://guns.lol/zywexx" },
+    { icon: "fa-solid fa-globe",     label: "Website",  url: "https://zywexx.vercel.app/" }
+  ],
+
+  // ---- KULLANILAN DİLLER / TEKNOLOJİLER ----
+  // Font Awesome ikon adlarını https://fontawesome.com/icons üzerinden bulabilirsin.
+  stack: [
+    { icon: "fa-brands fa-js",            name: "JavaScript" },
+    { icon: "fa-brands fa-node-js",       name: "Node.js" },
+    { icon: "fa-brands fa-html5",         name: "HTML5" },
+    { icon: "fa-brands fa-css3-alt",      name: "CSS3" },
+    { icon: "fa-brands fa-python",        name: "Python" },
+    { icon: "fa-solid fa-bolt",           name: "Electron" },
+    { icon: "fa-brands fa-discord",       name: "Discord.js" },
+    { icon: "fa-solid fa-lock",           name: "AES-256" },
+    { icon: "fa-brands fa-git-alt",       name: "Git" },
+    { icon: "fa-brands fa-windows",       name: "Windows" }
+  ],
+
+  // ---- PROJELER ----
+  // "badge" alanı isteğe bağlı (örn: "AKTİF", "YENİ"). Kaldırmak için satırı silebilirsin.  badge: "YENİ",
+  projects: [
+    {
+      icon: "fa-solid fa-shield-halved",
+      name: "787-AntiCheat-Scanner",
+      desc: "Windows masaüstü güvenlik tarama uygulaması. Şüpheli dosyaları tespit eder, tarayıcı geçmişini tarar, çalışan programları kontrol eder ve rapor oluşturur. Tamamen yerel, internet bağlantısı gerektirmez.",
+      stack: ["Electron", "Node.js", "Windows"],
+      url: "https://github.com/Zywexx/787-AntiCheat-Scanner"
+    },
+    {
+      icon: "fa-solid fa-vault",
+      name: "787-vault-notes-v2",
+      desc: "Sıfır bilgi (zero-knowledge) prensipli şifreli not yöneticisi. AES-256-GCM şifreleme, çevrimdışı yerel depolama, otomatik kilitleme ve bellek temizliği özellikleriyle gelir.",
+      stack: ["JavaScript", "AES-256-GCM", "Electron"],
+      url: "https://github.com/Zywexx/787-vault-notes-v2"
+    },
+    {
+      icon: "fa-solid fa-trophy",
+      name: "PUBG-Mobile-Turnuva-Botu-V2",
+      desc: "Discord sunucularında scrim ve turnuva süreçlerini otomatikleştiren bot. Takım kaydı, rastgele slot seçimi, oda yönetimi, VIP/ban sistemi ve SQLite tabanlı veri yönetimi içerir.",
+      stack: ["JavaScript", "discord.js", "SQLite"],
+      url: "https://github.com/Zywexx/PUBG-Mobile-Turnuva-Botu-V2"
+    },
+    {
+      icon: "fa-brands fa-discord",
+      name: "Discord-Server-Cloner",
+      desc: "Discord sunucu yapısını (kanallar, roller, izinler vb.) başka bir sunucuya kopyalayan, Manifest V3 mimarili tarayıcı eklentisi.",
+      stack: ["JavaScript", "Manifest V3"],
+      url: "https://github.com/Zywexx/Discord-Server-Cloner"
+    },
+    {
+      icon: "fa-brands fa-instagram",
+      name: "Instagram-Notifier",
+      desc: "Instagram mesajlarını kaçırmamak için akıllı bildirimler, gelişmiş rahatsız etmeyin modu, spam koruması ve karanlık arayüz sunan Chrome eklentisi.",
+      stack: ["JavaScript", "Chrome Extension"],
+      url: "https://github.com/Zywexx/Instagram-Notifier"
+    },
+    {
+      icon: "fa-solid fa-paper-plane",
+      name: "webhook-sender",
+      desc: "Discord webhook üzerinden link ve dosya göndermek için gelişmiş bir web arayüzü. Toplu gönderim, webhook yönetimi ve log sistemi içerir.",
+      stack: ["HTML", "JavaScript"],
+      url: "https://github.com/Zywexx/webhook-sender"
+    }
+  ],
+
+  // ---- BULUNDUĞUM EKİPLER ----
+  // avatarImg artık GitHub'dan değil, yerelden okunuyor.
+  // Nasıl kullanılır: bu index.html dosyasıyla aynı klasörde "assets/teams"
+  // adında klasörler oluştur, logo görselini içine at (örn. 787-inc.png),
+  // sonra avatarImg alanına o dosyanın yolunu yaz: "assets/teams/787-inc.png"
+  // avatarImg boş bırakılırsa avatarText (kısaltma) gösterilir.
+  teams: [
+    {
+      name: "787-INC",
+      role: "Founder & Lead Developer",
+      avatarText: "787",
+      avatarImg: "assets/teams/787-inc.png",
+      url: "https://github.com/787-INC"
+    }
+  ],
+
+  // ---- YEREL MÜZİK ÇALAR ----
+  // Nasıl kullanılır: bu index.html dosyasıyla aynı klasörde "music" adında
+  // bir klasör oluştur, mp3 dosyalarını içine at, sonra aşağıya ekle:
+  // { title: "Şarkı Adı", artist: "Sanatçı", src: "music/dosya.mp3" }
+  // ÖNEMLİ: src yolu, mp3 dosyasının index.html'e göre GERÇEK konumuyla
+  // birebir aynı olmalı. Örn. dosya "music/loser.mp3" ise src de öyle
+  // yazılmalı — sadece "loser.mp3" yazarsan tarayıcı dosyayı bulamaz ve
+  // müzik sessizce çalmaz.
+  tracks: [
+     { title: "Loser", artist: "Tame Impala", src: "music/music.mp3" }
+  ]
+};
+
+/* =====================================================================
+   RENDER — Aşağıdaki kod DATA'yı sayfaya basar. Değiştirmene gerek yok.
+   ===================================================================== */
+
+document.getElementById('year').textContent = new Date().getFullYear();
+document.getElementById('roleText').textContent = DATA.role;
+document.getElementById('bioText').textContent = DATA.bio;
+
+// Sosyal medya
+const socialRow = document.getElementById('socialRow');
+DATA.socials.forEach(s => {
+  const a = document.createElement('a');
+  a.className = 'icon-btn';
+  a.href = s.url;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  a.innerHTML = `<i class="${s.icon}"></i><span>${s.label}</span>`;
+  socialRow.appendChild(a);
+});
+
+// Teknoloji grid
+const techGrid = document.getElementById('techGrid');
+DATA.stack.forEach(t => {
+  const div = document.createElement('div');
+  div.className = 'tech-item';
+  div.innerHTML = `<i class="${t.icon}"></i><span>${t.name}</span>`;
+  techGrid.appendChild(div);
+});
+
+// Projeler
+const projectList = document.getElementById('projectList');
+DATA.projects.forEach(p => {
+  const row = document.createElement('div');
+  row.className = 'project';
+  row.innerHTML = `
+    <div class="project-icon"><i class="${p.icon}"></i></div>
+    <div>
+      <div class="project-name">${p.name} ${p.badge ? `<span class="badge">${p.badge}</span>` : ''}</div>
+      <div class="project-desc">${p.desc}</div>
+      <div class="project-stack">${(p.stack || []).map(s => `<span>${s}</span>`).join('')}</div>
+    </div>
+    <a class="project-link" href="${p.url}" target="_blank" rel="noopener noreferrer" title="Repoyu görüntüle"><i class="fa-brands fa-github"></i></a>
+  `;
+  projectList.appendChild(row);
+});
+
+// Ekipler
+const teamList = document.getElementById('teamList');
+DATA.teams.forEach(t => {
+  const card = document.createElement('div');
+  card.className = 'team-card';
+  card.innerHTML = `
+    <div class="team-avatar">${t.avatarImg ? `<img src="${t.avatarImg}" alt="${t.name}" onerror="this.replaceWith(Object.assign(document.createElement('span'), {textContent: '${t.avatarText || ''}'}))">` : t.avatarText}</div>
+    <div class="team-info">
+      <h3>${t.name}</h3>
+      <p>${t.role}</p>
+    </div>
+    <a class="icon-btn" href="${t.url}" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github"></i><span>Görüntüle</span></a>
+  `;
+  teamList.appendChild(card);
+});
+
+/* =====================================================================
+   INTRO — çizgi dolan yazı + dikey panjur açılışı
+   ===================================================================== */
+(function introSequence(){
+  const intro = document.getElementById('intro');
+  const barsWrap = document.getElementById('shutterBars');
+
+  // panjur şeritlerini oluştur, her birine kademeli gecikme ver
+  const BAR_COUNT = 14;
+  for(let i = 0; i < BAR_COUNT; i++){
+    const bar = document.createElement('div');
+    bar.className = 'bar';
+    bar.style.transitionDelay = (i * 0.032) + 's';
+    barsWrap.appendChild(bar);
+  }
+
+  const OPEN_AT = 1750;   // yazı dolduktan sonra panjurun açılma anı (ms)
+  const REMOVE_AT = OPEN_AT + BAR_COUNT * 32 + 700; // tüm şeritler açılınca kaldır
+
+  window.addEventListener('load', () => {
+    setTimeout(() => intro.classList.add('open'), OPEN_AT);
+    setTimeout(() => {
+      intro.classList.add('done');
+      document.dispatchEvent(new Event('introFinished'));
+    }, REMOVE_AT);
+  });
+})();
+
+/* ================= MOBİL MENÜ ================= */
+const navToggle = document.getElementById('navToggle');
+const navList = document.getElementById('navList');
+navToggle.addEventListener('click', () => navList.classList.toggle('open'));
+navList.querySelectorAll('a').forEach(a => a.addEventListener('click', () => navList.classList.remove('open')));
+
+/* =====================================================================
+   YEREL MÜZİK ÇALAR — DATA.tracks dizisindeki mp3 dosyalarını çalar.
+   ===================================================================== */
+(function musicPlayer(){
+  const audio = document.getElementById('audio');
+  const player = document.getElementById('player');
+  const playerHead = document.getElementById('playerHead');
+  const playerBody = document.getElementById('playerBody');
+  const toggleIcon = document.getElementById('toggleIcon');
+  const headTitle = document.getElementById('headTitle');
+  const trackName = document.getElementById('trackName');
+  const trackArtist = document.getElementById('trackArtist');
+  const playBtn = document.getElementById('playBtn');
+  const playIcon = document.getElementById('playIcon');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const progressBar = document.getElementById('progressBar');
+  const progressFill = document.getElementById('progressFill');
+  const curTime = document.getElementById('curTime');
+  const durTime = document.getElementById('durTime');
+  const volumeSlider = document.getElementById('volumeSlider');
+
+  const tracks = DATA.tracks || [];
+  let idx = 0;
+  let collapsed = false;
+
+  function fmt(sec){
+    if(!isFinite(sec)) return '0:00';
+    const m = Math.floor(sec/60);
+    const s = Math.floor(sec%60).toString().padStart(2,'0');
+    return `${m}:${s}`;
+  }
+
+  function loadTrack(i){
+    if(!tracks.length) return;
+    idx = (i + tracks.length) % tracks.length;
+    const t = tracks[idx];
+    audio.src = t.src;
+    trackName.textContent = t.title;
+    trackArtist.textContent = t.artist || '';
+    headTitle.textContent = t.title;
+  }
+
+  function playAudio(){
+    if(!tracks.length) return;
+    audio.play().then(() => {
+      player.classList.add('playing');
+      playIcon.className = 'fa-solid fa-pause';
+    }).catch(err => {
+      console.error('Müzik çalınamadı:', err);
+      trackArtist.innerHTML = `<span class="no-tracks">Dosya çalınamadı: "${tracks[idx].src}" yolunu kontrol et</span>`;
+      player.classList.remove('playing');
+      playIcon.className = 'fa-solid fa-play';
+    });
+  }
+  function pauseAudio(){
+    audio.pause();
+    player.classList.remove('playing');
+    playIcon.className = 'fa-solid fa-play';
+  }
+
+  audio.addEventListener('error', () => {
+    trackArtist.innerHTML = `<span class="no-tracks">Dosya bulunamadı: "${tracks[idx] ? tracks[idx].src : ''}"</span>`;
+  });
+
+  if(tracks.length){
+    loadTrack(0);
+    audio.volume = parseFloat(volumeSlider.value);
+  } else {
+    trackName.textContent = 'Şarkı bulunamadı';
+    trackArtist.innerHTML = '<span class="no-tracks">music/ klasörüne mp3 ekleyip DATA.tracks listesine ekle</span>';
+  }
+
+  document.addEventListener('introFinished', () => {
+    if(!tracks.length) return;
+    audio.play().then(() => {
+      player.classList.add('playing');
+      playIcon.className = 'fa-solid fa-pause';
+    }).catch(() => {
+      // Tarayıcı sesli otomatik oynatmayı engelledi.
+      // İlk kullanıcı etkileşiminde (tıklama/dokunma/tuş) şarkıyı başlat.
+      const startOnInteraction = () => {
+        audio.play().then(() => {
+          player.classList.add('playing');
+          playIcon.className = 'fa-solid fa-pause';
+        }).catch(() => {});
+      };
+      ['click', 'touchstart', 'keydown'].forEach(evt =>
+        document.addEventListener(evt, startOnInteraction, { once: true })
+      );
+    });
+  });
+
+  playBtn.addEventListener('click', () => {
+    if(!tracks.length) return;
+    audio.paused ? playAudio() : pauseAudio();
+  });
+  nextBtn.addEventListener('click', () => { loadTrack(idx+1); playAudio(); });
+  prevBtn.addEventListener('click', () => { loadTrack(idx-1); playAudio(); });
+  audio.addEventListener('ended', () => { loadTrack(idx+1); playAudio(); });
+
+  audio.addEventListener('timeupdate', () => {
+    if(audio.duration){
+      progressFill.style.width = (audio.currentTime/audio.duration*100) + '%';
+      curTime.textContent = fmt(audio.currentTime);
+      durTime.textContent = fmt(audio.duration);
+    }
+  });
+  progressBar.addEventListener('click', (e) => {
+    if(!audio.duration) return;
+    const rect = progressBar.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / rect.width;
+    audio.currentTime = ratio * audio.duration;
+  });
+  volumeSlider.addEventListener('input', () => { audio.volume = parseFloat(volumeSlider.value); });
+
+  playerHead.addEventListener('click', () => {
+    collapsed = !collapsed;
+    player.classList.toggle('collapsed', collapsed);
+    toggleIcon.className = collapsed ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down';
+  });
+})();
+</script>
+</body>
+</html>
