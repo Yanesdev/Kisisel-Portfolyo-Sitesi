@@ -64,6 +64,9 @@
     z-index:999;
   }
   #intro.done{visibility:hidden; pointer-events:none;}
+  #intro.ready{cursor:pointer;}
+  #intro.ready .intro-meter{animation:promptPulse 1.1s ease-in-out infinite;}
+  @keyframes promptPulse{0%,100%{opacity:.55;} 50%{opacity:1;}}
 
   .shutter-bars{
     position:absolute; inset:0;
@@ -768,6 +771,7 @@ DATA.teams.forEach(t => {
 (function introSequence(){
   const intro = document.getElementById('intro');
   const barsWrap = document.getElementById('shutterBars');
+  const meter = intro.querySelector('.intro-meter');
 
   // panjur şeritlerini oluştur, her birine kademeli gecikme ver
   const BAR_COUNT = 14;
@@ -778,15 +782,44 @@ DATA.teams.forEach(t => {
     barsWrap.appendChild(bar);
   }
 
-  const OPEN_AT = 1750;   // yazı dolduktan sonra panjurun açılma anı (ms)
-  const REMOVE_AT = OPEN_AT + BAR_COUNT * 32 + 700; // tüm şeritler açılınca kaldır
+  const READY_AT = 1750;              // yazı dolduktan sonra "dokun" mesajı hazır olur
+  const BAR_MS   = BAR_COUNT * 32 + 700; // tüm şeritler açılınca ne zaman kaldırılır
+  const AUTO_AT  = 4500;              // kullanıcı hiç dokunmazsa bu kadar bekleyip kendi açılır
+
+  let opened = false;
+
+  function openShutters(){
+    intro.classList.add('open');
+    setTimeout(() => intro.classList.add('done'), BAR_MS);
+  }
+
+  // trigger(true)  -> gerçek bir kullanıcı jesti (tık/dokunma/tuş) içinden çağrıldı.
+  //                   Bu durumda tarayıcı sesli otomatik oynatmaya HER ZAMAN izin verir.
+  // trigger(false) -> kullanıcı hiç etkileşime girmeden süre doldu, jestsiz açılış.
+  function trigger(withGesture){
+    if(opened) return;
+    opened = true;
+    document.removeEventListener('click', onGesture);
+    document.removeEventListener('touchstart', onGesture);
+    document.removeEventListener('keydown', onGesture);
+    // Müziği, panjur animasyonu başlamadan HEMEN ÖNCE, jest bağlamı hâlâ
+    // taze iken tetikle — bu yüzden setTimeout'tan önce dispatch ediyoruz.
+    document.dispatchEvent(new CustomEvent('introFinished', { detail: { gesture: withGesture } }));
+    openShutters();
+  }
+  function onGesture(){ trigger(true); }
 
   window.addEventListener('load', () => {
-    setTimeout(() => intro.classList.add('open'), OPEN_AT);
     setTimeout(() => {
-      intro.classList.add('done');
-      document.dispatchEvent(new Event('introFinished'));
-    }, REMOVE_AT);
+      if(meter) meter.innerHTML = '<span class="rule"></span>DEVAM ETMEK İÇİN DOKUN<span class="rule"></span>';
+      intro.classList.add('ready');
+      document.addEventListener('click', onGesture);
+      document.addEventListener('touchstart', onGesture);
+      document.addEventListener('keydown', onGesture);
+    }, READY_AT);
+
+    // Kullanıcı hiç dokunmazsa siteyi sonsuza dek bekletme.
+    setTimeout(() => trigger(false), READY_AT + AUTO_AT);
   });
 })();
 
@@ -869,20 +902,30 @@ navList.querySelectorAll('a').forEach(a => a.addEventListener('click', () => nav
     trackArtist.innerHTML = '<span class="no-tracks">music/ klasörüne mp3 ekleyip DATA.tracks listesine ekle</span>';
   }
 
-  document.addEventListener('introFinished', () => {
+  document.addEventListener('introFinished', (e) => {
     if(!tracks.length) return;
 
     const markPlaying = () => {
       player.classList.add('playing');
       playIcon.className = 'fa-solid fa-pause';
     };
+    const hasGesture = !!(e.detail && e.detail.gesture);
 
-    // Kullanıcı henüz siteyle hiç etkileşime girmediyse tarayıcılar SESLİ
-    // otomatik oynatmayı engeller. Bunu aşmak için: önce sessiz (muted)
-    // olarak otomatik başlatıyoruz — bu HER tarayıcıda izinlidir — sonra
-    // kullanıcının ilk etkileşiminde sesi anında açıyoruz. Böylece şarkı
-    // intro biter bitmez GERÇEKTEN çalmaya başlamış oluyor, sadece ses
-    // seviyesi ilk etkileşime kadar 0.
+    if(hasGesture){
+      // Intro, kullanıcının gerçek bir tık/dokunma/tuş jesti ile kapandı.
+      // Tarayıcılar bu durumda sesli otomatik oynatmaya HER ZAMAN izin
+      // verir — yani şarkı intro biter bitmez GERÇEKTEN ve SESLİ çalar.
+      audio.play().then(markPlaying).catch(err => {
+        console.error('Müzik çalınamadı:', err);
+        audio.muted = true;
+        audio.play().then(markPlaying).catch(() => {});
+      });
+      return;
+    }
+
+    // Kullanıcı hiç dokunmadan intro süresi doldu (jestsiz açılış).
+    // Bu durumda sesli oynatma engellenir; önce sessiz başlatıp ilk
+    // etkileşimde sesi anında açıyoruz.
     const unmuteOnInteraction = () => {
       audio.muted = false;
       markPlaying();
@@ -890,24 +933,15 @@ navList.querySelectorAll('a').forEach(a => a.addEventListener('click', () => nav
     ['click','touchstart','keydown','scroll','pointerdown','mousemove'].forEach(evt =>
       document.addEventListener(evt, unmuteOnInteraction, { once: true })
     );
-
-    audio.play().then(() => {
-      markPlaying();
-      audio.muted = false; // sesli oynatma izinliyse direkt sesli başlar
-    }).catch(() => {
-      // Sesli oynatma reddedildi → sessiz oynatmayı dene, bu neredeyse
-      // hiç reddedilmez. Şarkı fiilen çalmaya başlar, sadece sessiz.
-      audio.muted = true;
-      audio.play().then(markPlaying).catch(() => {
-        // Son çare: ilk etkileşimde normal şekilde başlat.
-        const startOnInteraction = () => {
-          audio.muted = false;
-          audio.play().then(markPlaying).catch(() => {});
-        };
-        ['click','touchstart','keydown'].forEach(evt =>
-          document.addEventListener(evt, startOnInteraction, { once: true })
-        );
-      });
+    audio.muted = true;
+    audio.play().then(markPlaying).catch(() => {
+      const startOnInteraction = () => {
+        audio.muted = false;
+        audio.play().then(markPlaying).catch(() => {});
+      };
+      ['click','touchstart','keydown'].forEach(evt =>
+        document.addEventListener(evt, startOnInteraction, { once: true })
+      );
     });
   });
 
