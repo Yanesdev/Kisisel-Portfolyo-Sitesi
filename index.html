@@ -871,21 +871,43 @@ navList.querySelectorAll('a').forEach(a => a.addEventListener('click', () => nav
 
   document.addEventListener('introFinished', () => {
     if(!tracks.length) return;
-    audio.play().then(() => {
+
+    const markPlaying = () => {
       player.classList.add('playing');
       playIcon.className = 'fa-solid fa-pause';
+    };
+
+    // Kullanıcı henüz siteyle hiç etkileşime girmediyse tarayıcılar SESLİ
+    // otomatik oynatmayı engeller. Bunu aşmak için: önce sessiz (muted)
+    // olarak otomatik başlatıyoruz — bu HER tarayıcıda izinlidir — sonra
+    // kullanıcının ilk etkileşiminde sesi anında açıyoruz. Böylece şarkı
+    // intro biter bitmez GERÇEKTEN çalmaya başlamış oluyor, sadece ses
+    // seviyesi ilk etkileşime kadar 0.
+    const unmuteOnInteraction = () => {
+      audio.muted = false;
+      markPlaying();
+    };
+    ['click','touchstart','keydown','scroll','pointerdown','mousemove'].forEach(evt =>
+      document.addEventListener(evt, unmuteOnInteraction, { once: true })
+    );
+
+    audio.play().then(() => {
+      markPlaying();
+      audio.muted = false; // sesli oynatma izinliyse direkt sesli başlar
     }).catch(() => {
-      // Tarayıcı sesli otomatik oynatmayı engelledi.
-      // İlk kullanıcı etkileşiminde (tıklama/dokunma/tuş) şarkıyı başlat.
-      const startOnInteraction = () => {
-        audio.play().then(() => {
-          player.classList.add('playing');
-          playIcon.className = 'fa-solid fa-pause';
-        }).catch(() => {});
-      };
-      ['click', 'touchstart', 'keydown'].forEach(evt =>
-        document.addEventListener(evt, startOnInteraction, { once: true })
-      );
+      // Sesli oynatma reddedildi → sessiz oynatmayı dene, bu neredeyse
+      // hiç reddedilmez. Şarkı fiilen çalmaya başlar, sadece sessiz.
+      audio.muted = true;
+      audio.play().then(markPlaying).catch(() => {
+        // Son çare: ilk etkileşimde normal şekilde başlat.
+        const startOnInteraction = () => {
+          audio.muted = false;
+          audio.play().then(markPlaying).catch(() => {});
+        };
+        ['click','touchstart','keydown'].forEach(evt =>
+          document.addEventListener(evt, startOnInteraction, { once: true })
+        );
+      });
     });
   });
 
