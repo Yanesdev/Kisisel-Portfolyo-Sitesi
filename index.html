@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.0/css/all.min.css" crossorigin="anonymous">
 
 <style>
   :root{
@@ -64,9 +64,6 @@
     z-index:999;
   }
   #intro.done{visibility:hidden; pointer-events:none;}
-  #intro.ready{cursor:pointer;}
-  #intro.ready .intro-meter{animation:promptPulse 1.1s ease-in-out infinite;}
-  @keyframes promptPulse{0%,100%{opacity:.55;} 50%{opacity:1;}}
 
   .shutter-bars{
     position:absolute; inset:0;
@@ -370,6 +367,33 @@
   .team-info p{font-size:.82rem; color:var(--grey);}
   .team-card .icon-btn{margin-left:auto;}
 
+  /* ---- SERTİFİKALAR ---- */
+  .cert-list{display:flex; flex-direction:column; gap:16px;}
+  .cert-card{
+    display:flex; align-items:center; gap:18px;
+    border:1px solid var(--line);
+    padding:18px 20px;
+    transition:border-color .2s ease, transform .2s ease;
+  }
+  .cert-card:hover{border-color:var(--white); transform:translateX(6px);}
+  .cert-icon{
+    width:50px; height:50px;
+    border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.2rem;
+    flex-shrink:0;
+    overflow:hidden;
+  }
+  .cert-icon img{width:100%; height:100%; object-fit:cover;}
+  .cert-info h3{font-family:var(--mono); font-size:.95rem; margin-bottom:4px;}
+  .cert-info p{font-size:.82rem; color:var(--grey);}
+  .cert-date{
+    font-family:var(--mono); font-size:.68rem;
+    color:var(--grey-dim); letter-spacing:1px;
+    margin-top:6px; display:block;
+  }
+  .cert-card .icon-btn{margin-left:auto;}
+
   /* ---- FOOTER ---- */
   footer{
     text-align:center;
@@ -510,6 +534,7 @@
       <li><a href="#stack">teknolojiler</a></li>
       <li><a href="#projects">projeler</a></li>
       <li><a href="#teams">ekipler</a></li>
+      <li><a href="#certs">sertifikalar</a></li>
     </ul>
   </nav>
 </header>
@@ -545,6 +570,13 @@
     <span class="tag">// birlikte çalıştıklarım</span>
     <h2 class="section-title">Bulunduğum Ekipler</h2>
     <div class="team-list" id="teamList"></div>
+  </section>
+
+  <!-- ================= SERTİFİKALAR ================= -->
+  <section id="certs">
+    <span class="tag">// aldığım belgeler</span>
+    <h2 class="section-title">Sertifikalar</h2>
+    <div class="cert-list" id="certList"></div>
   </section>
 
 </main>
@@ -690,6 +722,19 @@ const DATA = {
     }
   ],
 
+  // ---- SERTİFİKALAR ----
+  // Yeni sertifika eklemek için diziye yeni bir { ... } satırı ekle.
+  // DİKKAT: her satırın sonunda virgül olmalı (sonuncusu hariç).
+  // icon: Font Awesome ikonu | name: sertifika adı | issuer: veren kurum | date: tarih
+  // url: sertifika linki (isteğe bağlı, boşsa "Görüntüle" butonu çıkmaz)
+  // img: sertifika görseli (isteğe bağlı, örn. "assets/certs/sertifika1.png")
+  certs: [
+    { icon: "fa-brands fa-hackerrank", name: "Software Engineer",        issuer: "HackerRank",     date: "2026", url: "", img: "" },
+    { icon: "fa-brands fa-hackerrank", name: "Software Engineer Intern", issuer: "HackerRank",     date: "2026", url: "", img: "" },
+    { icon: "fa-brands fa-hackerrank", name: "Node.js (Intermediate)",   issuer: "HackerRank",     date: "2026", url: "", img: "" },
+    { icon: "fa-brands fa-claude",      name: "Claude 101",               issuer: "Claude Academy", date: "2026", url: "", img: "" }
+  ],
+
   // ---- YEREL MÜZİK ÇALAR ----
   // Nasıl kullanılır: bu index.html dosyasıyla aynı klasörde "music" adında
   // bir klasör oluştur, mp3 dosyalarını içine at, sonra aşağıya ekle:
@@ -765,13 +810,29 @@ DATA.teams.forEach(t => {
   teamList.appendChild(card);
 });
 
+// Sertifikalar
+const certList = document.getElementById('certList');
+(DATA.certs || []).forEach(c => {
+  const card = document.createElement('div');
+  card.className = 'cert-card';
+  card.innerHTML = `
+    <div class="cert-icon">${c.img ? `<img src="${c.img}" alt="${c.name}" onerror="this.replaceWith(Object.assign(document.createElement('i'), {className: '${c.icon || 'fa-solid fa-certificate'}'}))">` : `<i class="${c.icon || 'fa-solid fa-certificate'}"></i>`}</div>
+    <div class="cert-info">
+      <h3>${c.name}</h3>
+      <p>${c.issuer || ''}</p>
+      ${c.date ? `<span class="cert-date">${c.date}</span>` : ''}
+    </div>
+    ${c.url ? `<a class="icon-btn" href="${c.url}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-arrow-up-right-from-square"></i><span>Görüntüle</span></a>` : ''}
+  `;
+  certList.appendChild(card);
+});
+
 /* =====================================================================
    INTRO — çizgi dolan yazı + dikey panjur açılışı
    ===================================================================== */
 (function introSequence(){
   const intro = document.getElementById('intro');
   const barsWrap = document.getElementById('shutterBars');
-  const meter = intro.querySelector('.intro-meter');
 
   // panjur şeritlerini oluştur, her birine kademeli gecikme ver
   const BAR_COUNT = 14;
@@ -782,44 +843,15 @@ DATA.teams.forEach(t => {
     barsWrap.appendChild(bar);
   }
 
-  const READY_AT = 1750;              // yazı dolduktan sonra "dokun" mesajı hazır olur
-  const BAR_MS   = BAR_COUNT * 32 + 700; // tüm şeritler açılınca ne zaman kaldırılır
-  const AUTO_AT  = 4500;              // kullanıcı hiç dokunmazsa bu kadar bekleyip kendi açılır
-
-  let opened = false;
-
-  function openShutters(){
-    intro.classList.add('open');
-    setTimeout(() => intro.classList.add('done'), BAR_MS);
-  }
-
-  // trigger(true)  -> gerçek bir kullanıcı jesti (tık/dokunma/tuş) içinden çağrıldı.
-  //                   Bu durumda tarayıcı sesli otomatik oynatmaya HER ZAMAN izin verir.
-  // trigger(false) -> kullanıcı hiç etkileşime girmeden süre doldu, jestsiz açılış.
-  function trigger(withGesture){
-    if(opened) return;
-    opened = true;
-    document.removeEventListener('click', onGesture);
-    document.removeEventListener('touchstart', onGesture);
-    document.removeEventListener('keydown', onGesture);
-    // Müziği, panjur animasyonu başlamadan HEMEN ÖNCE, jest bağlamı hâlâ
-    // taze iken tetikle — bu yüzden setTimeout'tan önce dispatch ediyoruz.
-    document.dispatchEvent(new CustomEvent('introFinished', { detail: { gesture: withGesture } }));
-    openShutters();
-  }
-  function onGesture(){ trigger(true); }
+  const OPEN_AT = 1750;   // yazı dolduktan sonra panjurun açılma anı (ms)
+  const REMOVE_AT = OPEN_AT + BAR_COUNT * 32 + 700; // tüm şeritler açılınca kaldır
 
   window.addEventListener('load', () => {
+    setTimeout(() => intro.classList.add('open'), OPEN_AT);
     setTimeout(() => {
-      if(meter) meter.innerHTML = '<span class="rule"></span>DEVAM ETMEK İÇİN DOKUN<span class="rule"></span>';
-      intro.classList.add('ready');
-      document.addEventListener('click', onGesture);
-      document.addEventListener('touchstart', onGesture);
-      document.addEventListener('keydown', onGesture);
-    }, READY_AT);
-
-    // Kullanıcı hiç dokunmazsa siteyi sonsuza dek bekletme.
-    setTimeout(() => trigger(false), READY_AT + AUTO_AT);
+      intro.classList.add('done');
+      document.dispatchEvent(new Event('introFinished'));
+    }, REMOVE_AT);
   });
 })();
 
@@ -902,44 +934,21 @@ navList.querySelectorAll('a').forEach(a => a.addEventListener('click', () => nav
     trackArtist.innerHTML = '<span class="no-tracks">music/ klasörüne mp3 ekleyip DATA.tracks listesine ekle</span>';
   }
 
-  document.addEventListener('introFinished', (e) => {
+  document.addEventListener('introFinished', () => {
     if(!tracks.length) return;
-
-    const markPlaying = () => {
+    audio.play().then(() => {
       player.classList.add('playing');
       playIcon.className = 'fa-solid fa-pause';
-    };
-    const hasGesture = !!(e.detail && e.detail.gesture);
-
-    if(hasGesture){
-      // Intro, kullanıcının gerçek bir tık/dokunma/tuş jesti ile kapandı.
-      // Tarayıcılar bu durumda sesli otomatik oynatmaya HER ZAMAN izin
-      // verir — yani şarkı intro biter bitmez GERÇEKTEN ve SESLİ çalar.
-      audio.play().then(markPlaying).catch(err => {
-        console.error('Müzik çalınamadı:', err);
-        audio.muted = true;
-        audio.play().then(markPlaying).catch(() => {});
-      });
-      return;
-    }
-
-    // Kullanıcı hiç dokunmadan intro süresi doldu (jestsiz açılış).
-    // Bu durumda sesli oynatma engellenir; önce sessiz başlatıp ilk
-    // etkileşimde sesi anında açıyoruz.
-    const unmuteOnInteraction = () => {
-      audio.muted = false;
-      markPlaying();
-    };
-    ['click','touchstart','keydown','scroll','pointerdown','mousemove'].forEach(evt =>
-      document.addEventListener(evt, unmuteOnInteraction, { once: true })
-    );
-    audio.muted = true;
-    audio.play().then(markPlaying).catch(() => {
+    }).catch(() => {
+      // Tarayıcı sesli otomatik oynatmayı engelledi.
+      // İlk kullanıcı etkileşiminde (tıklama/dokunma/tuş) şarkıyı başlat.
       const startOnInteraction = () => {
-        audio.muted = false;
-        audio.play().then(markPlaying).catch(() => {});
+        audio.play().then(() => {
+          player.classList.add('playing');
+          playIcon.className = 'fa-solid fa-pause';
+        }).catch(() => {});
       };
-      ['click','touchstart','keydown'].forEach(evt =>
+      ['click', 'touchstart', 'keydown'].forEach(evt =>
         document.addEventListener(evt, startOnInteraction, { once: true })
       );
     });
